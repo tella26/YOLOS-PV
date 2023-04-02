@@ -191,7 +191,6 @@ model = Detector(
     use_checkpoint=False,
 )
 # replace your model path with following setting
-args.resume = '/content/YOLOS-PV/HOME/output_dir/checkpoint.pth'
 checkpoint = torch.load(args.resume,  map_location={'cuda:1': 'cuda:0'})
 model.load_state_dict(checkpoint['model'])
 
