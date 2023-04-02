@@ -2,8 +2,11 @@
 
 Hacked together by / Copyright 2020 Ross Wightman
 """
+import torch
 from itertools import repeat
-from torch._six import container_abcs
+#from torch._six import container_abcs
+import collections.abc as container_abcs
+
 
 
 # From PyTorch internals
