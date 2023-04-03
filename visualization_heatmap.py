@@ -171,7 +171,7 @@ def get_args_parser():
                         help="split")
     parser.add_argument('--pre_trained', default='',
                         help="set imagenet pretrained model path if not train yolos from scatch")
-    parser.add_argument("--det_token_num", default=5, type=int,
+    parser.add_argument("--det_token_num", default=100, type=int,
                         help="Number of det token in the deit backbone")
     parser.add_argument('--init_pe_size', nargs='+', type=int, default=[512,864],
                         help="init pe size (h,w)")
@@ -195,7 +195,7 @@ model = Detector(
 """Device Selection"""
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# checkpoint = torch.load(args.resume, map_location=torch.device('cpu')) # cpu
+#checkpoint = torch.load(args.resume, map_location=torch.device('cpu')) # cpu
 checkpoint = torch.load(args.resume)
 # adjust the shape of the pos_embed parameter 
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]

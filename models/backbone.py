@@ -275,7 +275,7 @@ class VisionTransformer(nn.Module):
         scale_pos_embed = torch.cat((cls_pos_embed, patch_pos_embed, det_pos_embed), dim=1)
         return scale_pos_embed
 
-    def InterpolateMidPosEmbed(self, pos_embed, img_size=(800, 1344)):
+    def InterpolateMidPosEmbed(self, pos_embed, img_size=(800, 1333)):
         # import pdb;pdb.set_trace()
         cls_pos_embed = pos_embed[:, :, 0, :]
         cls_pos_embed = cls_pos_embed[:,None]
