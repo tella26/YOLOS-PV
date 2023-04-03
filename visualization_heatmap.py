@@ -171,7 +171,7 @@ def get_args_parser():
                         help="split")
     parser.add_argument('--pre_trained', default='',
                         help="set imagenet pretrained model path if not train yolos from scatch")
-    parser.add_argument("--det_token_num", default=100, type=int,
+    parser.add_argument("--det_token_num", default=5, type=int,
                         help="Number of det token in the deit backbone")
     parser.add_argument('--init_pe_size', nargs='+', type=int, default=[512,864],
                         help="init pe size (h,w)")
