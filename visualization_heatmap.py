@@ -182,7 +182,7 @@ args = parser.parse_args("")
 args.output_dir = str(increment_path(Path(args.project) / args.name))
 
 model = Detector(
-    num_classes=91,
+    num_classes=1,
     pre_trained=args.pre_trained,
     det_token_num=args.det_token_num,
     backbone_name=args.backbone_name,
@@ -192,8 +192,6 @@ model = Detector(
 )
 # replace your model path with following setting
 checkpoint = torch.load(args.resume)
-print(checkpoint['model'])
-print(model)
 model.load_state_dict(state_dict = checkpoint['model'], strict=False)
 
 root = Path(args.coco_path)
