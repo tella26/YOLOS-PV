@@ -197,8 +197,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # checkpoint = torch.load(args.resume, map_location=torch.device('cpu')) # cpu
 checkpoint = torch.load(args.resume)
-# adjust the shape of the pos_embed parameter
+# adjust the shape of the pos_embed parameter 
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
+checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
 checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
 checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
 # load the state dictionary into the model
