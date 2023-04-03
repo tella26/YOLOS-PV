@@ -192,7 +192,7 @@ model = Detector(
 )
 # replace your model path with following setting
 checkpoint = torch.load(args.resume)
-model.load_state_dict(checkpoint['model'])
+model.load_state_dict(checkpoint['model'], strict=False)
 
 root = Path(args.coco_path)
 assert root.exists(), f'provided COCO path {root} does not exist'
