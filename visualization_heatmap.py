@@ -152,7 +152,9 @@ def get_one_query_attn(vis_attn, h_featmap, w_featmap, nh):
 
 # classes
 CLASSES = [
-  'defect'
+    'defect',
+    'background',
+    '1',
 ]
 
 def get_args_parser():
@@ -163,7 +165,7 @@ def get_args_parser():
     parser.add_argument('--index', default=5, type=int, help='index of dataset')
     parser.add_argument('--backbone_name', default='small', type=str,
                         help="Name of the deit backbone to use")
-    parser.add_argument('--coco_path', default='', type=str,
+    parser.add_argument('--coco_path', default='./data', type=str,
                         help="split")
     parser.add_argument('--image_set', default='val', type=str,
                         help="split")
@@ -175,14 +177,14 @@ def get_args_parser():
                         help="init pe size (h,w)")
     parser.add_argument('--mid_pe_size', nargs='+', type=int, default=[512,864],
                         help="mid pe size (h,w)")
-    parser.add_argument('--resume', default='/content/HOME/output_dir/checkpoint.pth', help='resume from checkpoint') 
+    parser.add_argument('--resume', default='output/checkpoint/checkpoint.pth', help='resume from checkpoint') 
     return parser
 parser = argparse.ArgumentParser('Visualize Self-Attention maps', parents=[get_args_parser()])
 args = parser.parse_args("")
 args.output_dir = str(increment_path(Path(args.project) / args.name))
 
 model = Detector(
-    num_classes=1,
+    num_classes=2,
     pre_trained=args.pre_trained,
     det_token_num=args.det_token_num,
     backbone_name=args.backbone_name,
@@ -190,9 +192,17 @@ model = Detector(
     mid_pe_size=args.mid_pe_size,
     use_checkpoint=False,
 )
-# replace your model path with following setting
-checkpoint = torch.load(args.resume)
-model.load_state_dict(state_dict = checkpoint['model'], strict=False)
+"""Device Selection"""
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+# checkpoint = torch.load(args.resume, map_location=torch.device('cpu')) # cpu
+checkpoint = torch.load(args.resume, map_location=torch.device('cpu'))
+# adjust the shape of the pos_embed parameter
+checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
+checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
+checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
+# load the state dictionary into the model
+model.load_state_dict(checkpoint['model'])
 
 root = Path(args.coco_path)
 assert root.exists(), f'provided COCO path {root} does not exist'
@@ -207,8 +217,7 @@ dataset = CocoDetection(img_folder, ann_file, transforms=make_coco_transforms(im
 img_data, img_anno = dataset.__getitem__(args.index)
 ret=nested_tensor_from_tensor_list(img_data.unsqueeze(0))
 
-# device = torch.device("cuda")
-device = torch.device("cpu")
+
 model = model.eval()
 model.to(device)
 ret = ret.to(device)
@@ -220,7 +229,8 @@ attention = attention[0, :, -args.det_token_num:, 1:-args.det_token_num]
 result_dic = model(ret)
 # get visualize dettoken index
 probas = result_dic['pred_logits'].softmax(-1)[0, :, :-1].cpu()
-keep = probas.max(-1).values > 0.9
+# Confident level
+keep = probas.max(-1).values > 0.1
 vis_indexs = torch.nonzero(keep).squeeze(1)
 # save original image
 os.makedirs(args.output_dir, exist_ok=True)
@@ -241,8 +251,8 @@ for vis_index in vis_indexs:
     token_dir = os.path.join(args.output_dir, 'Det-Tok-'+str(int(vis_index)))
     os.makedirs(token_dir, exist_ok=True)
     # get corresponding bbox
-    bbox_scaled = rescale_bboxes(result_dic['pred_boxes'][0, vis_index].unsqueeze(0).cpu(), (w,h))
-    prob = result_dic['pred_logits'].softmax(-1)[0, :, :-1].cpu()
+    bbox_scaled = rescale_bboxes(result_dic['pred_boxes'][0, vis_index].unsqueeze(0).to(device), (w,h))
+    prob = result_dic['pred_logits'].softmax(-1)[0, :, :-1].to(device)
     score = prob[vis_index].unsqueeze(0)
     vis_attn = attention[:, vis_index, :]
     mean_attention = get_one_query_meanattn(vis_attn, h_featmap, w_featmap)
