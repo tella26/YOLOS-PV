@@ -204,7 +204,7 @@ class VisionTransformer(nn.Module):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def finetune_det(self, img_size=[800, 1344], det_token_num=100, mid_pe_size=None, use_checkpoint=False):
+    def finetune_det(self, img_size=[800, 1333], det_token_num=100, mid_pe_size=None, use_checkpoint=False):
         # import pdb;pdb.set_trace()
 
         import math
