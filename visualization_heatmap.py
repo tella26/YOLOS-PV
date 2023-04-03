@@ -191,7 +191,7 @@ model = Detector(
     use_checkpoint=False,
 )
 # replace your model path with following setting
-checkpoint = torch.load(args.resume,  map_location={'cuda:1': 'cuda:0'})
+checkpoint = torch.load(args.resume)
 model.load_state_dict(checkpoint['model'])
 
 root = Path(args.coco_path)
