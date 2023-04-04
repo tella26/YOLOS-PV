@@ -177,7 +177,8 @@ def get_args_parser():
                         help="init pe size (h,w)")
     parser.add_argument('--mid_pe_size', nargs='+', type=int, default=[512,864],
                         help="mid pe size (h,w)")
-    parser.add_argument('--checkpoint', help='resume from checkpoint') 
+    parser.add_argument('--checkpoint', default='/content/HOME/output_dir/model-epoch=00-val_loss=0.00.ckpt',
+                         type =str,  help='resume from checkpoint') 
     return parser
 parser = argparse.ArgumentParser('Visualize Self-Attention maps', parents=[get_args_parser()])
 args = parser.parse_args("")
