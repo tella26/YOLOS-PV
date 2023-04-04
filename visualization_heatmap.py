@@ -212,7 +212,9 @@ else:
 #checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
 #checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
 # load the state dictionary into the model
-model.load_state_dict(checkpoint['model'])
+#model.load_state_dict(checkpoint['model'])
+
+model.load_state_dict(checkpoint)
 
 root = Path(args.coco_path)
 assert root.exists(), f'provided COCO path {root} does not exist'
