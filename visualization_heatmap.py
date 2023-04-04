@@ -198,8 +198,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Define the path to the checkpoint file
     # Load the model checkpoint from the specified path
-checkpoint = torch.load(args.checkpoint)
-#checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
+if device == 'cuda':
+    checkpoint = torch.load(args.checkpoint)
+else:
+    checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
 
 # adjust the shape of the pos_embed parameter  backbone.pos_embed
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
@@ -236,7 +238,7 @@ result_dic = model(ret)
 # get visualize dettoken index
 probas = result_dic['pred_logits'].softmax(-1)[0, :, :-1].cpu()
 # Confident level
-keep = probas.max(-1).values > 0.0
+keep = probas.max(-1).values > 0.3
 vis_indexs = torch.nonzero(keep).squeeze(1)
 # save original image
 os.makedirs(args.output_dir, exist_ok=True)
@@ -324,5 +326,6 @@ for dettoken_dir in det_tok_dirs:
     fleft_ax.imshow(im)
     fleft_ax.axis('off')
     fleft_ax.set_title('pred_img.png')
-    fig.savefig(os.path.join(dettoken_dir, dettoken_dir.split('/')[-1]+'_'+'attn.png'), facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
-#   plt.close(fig)
+    fig.savefig(dettoken_dir.split('/')[-1]+'_'+'attn.png', facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
+    plt.show(fig)
+    plt.close(fig)
