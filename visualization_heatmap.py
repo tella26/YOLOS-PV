@@ -197,21 +197,20 @@ model = Detector(
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Define the path to the checkpoint file
-# Check if the file exists at the specified path
-if not os.path.exists(args.checkpoint):
-    print('Error: Checkpoint file not found at', args.checkpoint)
-else:
     # Load the model checkpoint from the specified path
-    checkpoint = torch.load(args.checkpoint)
-    # checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
+checkpoint = torch.load(args.checkpoint)
+# checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
 
-# adjust the shape of the pos_embed parameter 
+# adjust the shape of the pos_embed parameter  backbone.pos_embed
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
 checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
 checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
 checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
+checkpoint['model']['backbone.mid_pos_embed'] = checkpoint['model']['backbone.mid_pos_embed'][:,:, :model.backbone.mid_pos_embed.shape[1], :]
+
+
 # load the state dictionary into the model
-model.load_state_dict(checkpoint['model'])
+model.load_state_dict(checkpoint['model'], strict=False)
 
 root = Path(args.coco_path)
 assert root.exists(), f'provided COCO path {root} does not exist'
