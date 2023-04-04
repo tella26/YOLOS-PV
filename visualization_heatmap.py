@@ -152,9 +152,9 @@ def get_one_query_attn(vis_attn, h_featmap, w_featmap, nh):
 
 # classes
 CLASSES = [
-    'defect',
     'background',
     '1',
+    'defect',
 ]
 
 def get_args_parser():
@@ -177,7 +177,7 @@ def get_args_parser():
                         help="init pe size (h,w)")
     parser.add_argument('--mid_pe_size', nargs='+', type=int, default=[512,864],
                         help="mid pe size (h,w)")
-    parser.add_argument('--checkpoint', default='',
+    parser.add_argument('--checkpoint', default='output/checkpoint/checkpoint.pth',
                          type =str,  help='resume from checkpoint') 
     return parser
 parser = argparse.ArgumentParser('Visualize Self-Attention maps', parents=[get_args_parser()])
@@ -203,7 +203,7 @@ if not os.path.exists(args.checkpoint):
 else:
     # Load the model checkpoint from the specified path
     checkpoint = torch.load(args.checkpoint)
-    #checkpoint = torch.load(resume_path, map_location=torch.device('cpu')) # cpu
+    # checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
 
 # adjust the shape of the pos_embed parameter 
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
@@ -239,7 +239,7 @@ result_dic = model(ret)
 # get visualize dettoken index
 probas = result_dic['pred_logits'].softmax(-1)[0, :, :-1].cpu()
 # Confident level
-keep = probas.max(-1).values > 0.1
+keep = probas.max(-1).values > 0.0
 vis_indexs = torch.nonzero(keep).squeeze(1)
 # save original image
 os.makedirs(args.output_dir, exist_ok=True)
