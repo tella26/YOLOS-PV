@@ -177,7 +177,7 @@ def get_args_parser():
                         help="init pe size (h,w)")
     parser.add_argument('--mid_pe_size', nargs='+', type=int, default=[512,864],
                         help="mid pe size (h,w)")
-    parser.add_argument('--resume', default=' ', help='resume from checkpoint') 
+    parser.add_argument('--checkpoint', default=' ', help='resume from checkpoint') 
     return parser
 parser = argparse.ArgumentParser('Visualize Self-Attention maps', parents=[get_args_parser()])
 args = parser.parse_args("")
@@ -196,7 +196,8 @@ model = Detector(
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 #checkpoint = torch.load(args.resume, map_location=torch.device('cpu')) # cpu
-checkpoint = torch.load(args.resume)
+resume_path = args.checkpoint
+checkpoint = torch.load(resume_path)
 # adjust the shape of the pos_embed parameter 
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
 checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
