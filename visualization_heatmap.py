@@ -177,11 +177,11 @@ def get_args_parser():
                         help="init pe size (h,w)")
     parser.add_argument('--mid_pe_size', nargs='+', type=int, default=[512,864],
                         help="mid pe size (h,w)")
-    parser.add_argument('--checkpoint', default='/content/HOME/output_dir/model-epoch=00-val_loss=0.00.ckpt',
+    parser.add_argument('--checkpoint', default='',
                          type =str,  help='resume from checkpoint') 
     return parser
 parser = argparse.ArgumentParser('Visualize Self-Attention maps', parents=[get_args_parser()])
-args = parser.parse_args("")
+args = parser.parse_args()
 args.output_dir = str(increment_path(Path(args.project) / args.name))
 
 model = Detector(
@@ -197,14 +197,12 @@ model = Detector(
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Define the path to the checkpoint file
-resume_path = args.checkpoint
-
 # Check if the file exists at the specified path
-if not os.path.exists(resume_path):
-    print('Error: Checkpoint file not found at', resume_path)
+if not os.path.exists(args.checkpoint):
+    print('Error: Checkpoint file not found at', args.checkpoint)
 else:
     # Load the model checkpoint from the specified path
-    checkpoint = torch.load(resume_path)
+    checkpoint = torch.load(args.checkpoint)
     #checkpoint = torch.load(resume_path, map_location=torch.device('cpu')) # cpu
 
 # adjust the shape of the pos_embed parameter 
