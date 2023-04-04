@@ -206,7 +206,7 @@ checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_em
 checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
 checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
 checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
-checkpoint['model']['backbone.mid_pos_embed'] = checkpoint['model']['backbone.mid_pos_embed'][:,:, :model.backbone.mid_pos_embed.shape[1], :]
+#checkpoint['model']['backbone.mid_pos_embed'] = checkpoint['model']['backbone.mid_pos_embed'][:,:, :model.backbone.mid_pos_embed.shape[1], :]
 
 
 # load the state dictionary into the model
