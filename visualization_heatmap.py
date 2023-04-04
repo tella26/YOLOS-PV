@@ -180,7 +180,7 @@ def get_args_parser():
     parser.add_argument('--checkpoint', default='output/checkpoint/checkpoint.pth',
                          type =str,  help='resume from checkpoint') 
     parser.add_argument('--threshold', default=0.1,
-                         type =int,  help='Confidence threshold') 
+                         type=float,  help='Confidence threshold') 
 
     return parser
 parser = argparse.ArgumentParser('Visualize Self-Attention maps', parents=[get_args_parser()])
