@@ -196,9 +196,17 @@ model = Detector(
 """Device Selection"""
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# Define the path to the checkpoint file
 resume_path = args.checkpoint
-#checkpoint = torch.load(resume_path, map_location=torch.device('cpu')) # cpu
-checkpoint = torch.load(resume_path)
+
+# Check if the file exists at the specified path
+if not os.path.exists(resume_path):
+    print('Error: Checkpoint file not found at', resume_path)
+else:
+    # Load the model checkpoint from the specified path
+    checkpoint = torch.load(resume_path)
+    #checkpoint = torch.load(resume_path, map_location=torch.device('cpu')) # cpu
+
 # adjust the shape of the pos_embed parameter 
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
 checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
