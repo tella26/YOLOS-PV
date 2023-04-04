@@ -329,6 +329,6 @@ for dettoken_dir in det_tok_dirs:
     fleft_ax.imshow(im)
     fleft_ax.axis('off')
     fleft_ax.set_title('pred_img.png')
-    fig.savefig(os.path.join(args.project, dettoken_dir.split('/')[-1]+'_'+'attn.png', facecolor=fig.get_facecolor()), edgecolor='none', dpi=300)
+    fig.savefig(os.path.join(args.project, dettoken_dir.split('/')[-1]+'_'+'attn.png'), facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
     plt.show(fig)
     plt.close(fig)
