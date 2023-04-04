@@ -199,21 +199,19 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 # Define the path to the checkpoint file
     # Load the model checkpoint from the specified path
 checkpoint = torch.load(args.checkpoint)
-# checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
+#checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
 
 # adjust the shape of the pos_embed parameter  backbone.pos_embed
 checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
 checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
 checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
 checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
-#checkpoint['model']['backbone.mid_pos_embed'] = checkpoint['model']['backbone.mid_pos_embed'][:,:, :model.backbone.mid_pos_embed.shape[1], :]
-
 
 # load the state dictionary into the model
 model.load_state_dict(checkpoint['model'], strict=False)
 
 root = Path(args.coco_path)
-assert root.exists(), f'provided COCO path {root} does not exist'
+#assert root.exists(), f'provided COCO path {root} does not exist'
 mode = 'instances'
 image_set=args.image_set
 PATHS = {
@@ -259,8 +257,19 @@ for vis_index in vis_indexs:
     token_dir = os.path.join(args.output_dir, 'Det-Tok-'+str(int(vis_index)))
     os.makedirs(token_dir, exist_ok=True)
     # get corresponding bbox
-    bbox_scaled = rescale_bboxes(result_dic['pred_boxes'][0, vis_index].unsqueeze(0).to(device), (w,h))
-    prob = result_dic['pred_logits'].softmax(-1)[0, :, :-1].to(device)
+    if device == 'cuda':
+        boxes = result_dic['pred_boxes'][0, vis_index].unsqueeze(0)
+        # Transfer the 'boxes' tensor to the GPU
+        boxes = boxes.to(device)
+
+        # Rescale the bounding boxes on the GPU
+        bbox_scaled = rescale_bboxes(boxes, (w, h))
+        probs = result_dic['pred_logits'].softmax(-1)[0, :, :-1]
+        prob = probs.to(device)
+    else:
+        bbox_scaled = rescale_bboxes(result_dic['pred_boxes'][0, vis_index].unsqueeze(0).cpu(), (w,h))
+        prob = result_dic['pred_logits'].softmax(-1)[0, :, :-1].cpu()
+
     score = prob[vis_index].unsqueeze(0)
     vis_attn = attention[:, vis_index, :]
     mean_attention = get_one_query_meanattn(vis_attn, h_featmap, w_featmap)
