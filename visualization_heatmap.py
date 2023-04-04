@@ -162,7 +162,7 @@ def get_args_parser():
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument('--project', default='./visualization', help='Path where to save visualizations.')
     parser.add_argument('--name', default='exp', help='save to project/name')
-    parser.add_argument('--index', default=5, type=int, help='index of dataset')
+    parser.add_argument('--index', default=2, type=int, help='index of dataset')
     parser.add_argument('--backbone_name', default='small', type=str,
                         help="Name of the deit backbone to use")
     parser.add_argument('--coco_path', default='./data', type=str,
@@ -179,6 +179,9 @@ def get_args_parser():
                         help="mid pe size (h,w)")
     parser.add_argument('--checkpoint', default='output/checkpoint/checkpoint.pth',
                          type =str,  help='resume from checkpoint') 
+    parser.add_argument('--threshold', default=0.1,
+                         type =int,  help='Confidence threshold') 
+
     return parser
 parser = argparse.ArgumentParser('Visualize Self-Attention maps', parents=[get_args_parser()])
 args = parser.parse_args()
@@ -238,7 +241,7 @@ result_dic = model(ret)
 # get visualize dettoken index
 probas = result_dic['pred_logits'].softmax(-1)[0, :, :-1].cpu()
 # Confident level
-keep = probas.max(-1).values > 0.3
+keep = probas.max(-1).values > args.threshold
 vis_indexs = torch.nonzero(keep).squeeze(1)
 # save original image
 os.makedirs(args.output_dir, exist_ok=True)
