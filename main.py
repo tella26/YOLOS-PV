@@ -40,14 +40,7 @@ def get_args_parser():
                         help='LR scheduler (default: "step", options:"step", "warmupcos"')
     ## step
     parser.add_argument('--lr_drop', default=100, type=int)  
-    ## warmupcosine
 
-    # parser.add_argument('--lr-noise', type=float, nargs='+', default=None, metavar='pct, pct',
-    #                     help='learning rate noise on/off epoch percentages')
-    # parser.add_argument('--lr-noise-pct', type=float, default=0.67, metavar='PERCENT',
-    #                     help='learning rate noise limit percent (default: 0.67)')
-    # parser.add_argument('--lr-noise-std', type=float, default=1.0, metavar='STDDEV',
-    #                     help='learning rate noise std-dev (default: 1.0)')
     parser.add_argument('--warmup-lr', type=float, default=1e-6, metavar='LR',
                         help='warmup learning rate (default: 1e-6)')
     parser.add_argument('--min-lr', type=float, default=1e-7, metavar='LR',
@@ -99,6 +92,10 @@ def get_args_parser():
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
+    parser.add_argument('--weighted_giou', default=1, type=float)
+    parser.add_argument('--weighted_l1', default=1, type=float)
+    parser.add_argument('--num_classes', default=5, type=int)
+    parser.add_argument('--img_size', default=224, type=int)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -109,20 +106,17 @@ def get_args_parser():
 
 def main(args):
     utils.init_distributed_mode(args)
-    # print("git:\n  {}\n".format(utils.get_sha()))
-
     print(args)
 
-    device = torch.device(args.device)
+    """Device Selection"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    # fix the seed for reproducibility
     seed = args.seed + utils.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    # import pdb;pdb.set_trace()
     model, criterion, postprocessors = build_yolos_model(args)
-    # model, criterion, postprocessors = build_model(args)
+    
     model.to(device)
 
     model_without_ddp = model
@@ -192,7 +186,7 @@ def main(args):
             checkpoint = torch.hub.load_state_dict_from_url(
                 args.resume, map_location='cpu', check_hash=True)
         else:
-            checkpoint = torch.load(args.resume, map_location='cpu')
+            checkpoint = torch.load(args.resume)
         model_without_ddp.load_state_dict(checkpoint['model'])
         if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             optimizer.load_state_dict(checkpoint['optimizer'])

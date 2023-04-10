@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 from functools import partial
-
+from torchvision.ops import box_iou, box_convert, box_area
 from .backbone import *
 
 
@@ -73,7 +73,7 @@ class SetCriterion(nn.Module):
         1) we compute hungarian assignment between ground truth boxes and the outputs of the model
         2) we supervise each pair of matched ground-truth / prediction (supervise class and box)
     """
-    def __init__(self, num_classes, matcher, weight_dict, eos_coef, losses):
+    def __init__(self, num_classes, matcher, weight_dict, eos_coef, losses, weighted_l1, weighted_giou):
         """ Create the criterion.
         Parameters:
             num_classes: number of object categories, omitting the special no-object category
@@ -88,6 +88,8 @@ class SetCriterion(nn.Module):
         self.weight_dict = weight_dict
         self.eos_coef = eos_coef
         self.losses = losses
+        self.weighted_giou = weighted_giou # weighting factor for GIOU loss
+        self.weighted_l1 = weighted_l1 # weighting factor for L1 loss
         empty_weight = torch.ones(self.num_classes + 1)
         empty_weight[-1] = self.eos_coef
         self.register_buffer('empty_weight', empty_weight)
@@ -126,7 +128,7 @@ class SetCriterion(nn.Module):
         card_err = F.l1_loss(card_pred.float(), tgt_lengths.float())
         losses = {'cardinality_error': card_err}
         return losses
-
+    '''
     def loss_boxes(self, outputs, targets, indices, num_boxes):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
            targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
@@ -147,6 +149,68 @@ class SetCriterion(nn.Module):
             box_ops.box_cxcywh_to_xyxy(target_boxes)))
         losses['loss_giou'] = loss_giou.sum() / num_boxes
         return losses
+    '''
+
+  
+    def loss_boxes(self, outputs, targets, indices, num_boxes, weighted_l1, weighted_giou):
+        """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
+           targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
+           The target boxes are expected in format (center_x, center_y, w, h), normalized by the image size.
+        """
+        assert 'pred_boxes' in outputs
+        idx = self._get_src_permutation_idx(indices)
+        src_boxes = outputs['pred_boxes'][idx]
+        target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
+
+        loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
+        
+        losses = {}
+        losses['loss_bbox']  = (weighted_l1 *loss_bbox).sum() / num_boxes
+
+        loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
+            box_ops.box_cxcywh_to_xyxy(src_boxes),
+            box_ops.box_cxcywh_to_xyxy(target_boxes)))
+        
+        losses['loss_giou'] = (weighted_giou *loss_giou).sum() / num_boxes
+        return losses
+    
+
+    ''' Weighted bbox and giou loss'''
+    '''
+    def loss_boxes(self, outputs, targets, indices, num_boxes):
+        assert 'pred_boxes' in outputs
+        idx = self._get_src_permutation_idx(indices)
+        src_boxes = outputs['pred_boxes'][idx]
+        target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
+        losses = {}
+
+        # Compute L1 loss
+        loss_l1 = F.l1_loss(src_boxes, target_boxes, reduction='none')
+        #weighted_l1 = 1.0 
+        loss_l1_weighted = (self.weighted_l1 * loss_l1).sum() / num_boxes
+
+        # Compute GIOU loss
+        src_boxes = box_convert(src_boxes, 'cxcywh', 'xyxy')
+        target_boxes = box_convert(target_boxes, 'cxcywh', 'xyxy')
+        ious = box_iou(src_boxes, target_boxes)
+        areas_p = box_area(src_boxes)
+        areas_g = box_area(target_boxes)
+        giou = ious - (areas_p + areas_g - ious) / areas_g
+        loss_giou = 1.0 - giou.diag().clamp(min=0).mean()
+        #weighted_giou = 2.0 
+        loss_giou_weighted = (self.weighted_giou * loss_giou)
+
+       
+        # Compute total weighted loss
+        #total_loss = loss_l1_weighted + loss_giou_weighted
+        #final_loss = total_loss / (weighted_l1+ weighted_giou)
+        #losses = {'loss_bbox': loss_l1_weighted}
+        
+        losses['loss_giou'] = loss_l1_weighted 
+        losses['loss_bbox'] = loss_giou_weighted 
+      
+        return losses
+      '''
 
     def loss_masks(self, outputs, targets, indices, num_boxes):
         """Compute the losses related to the masks: the focal loss and the dice loss.
@@ -159,7 +223,6 @@ class SetCriterion(nn.Module):
         src_masks = outputs["pred_masks"]
         src_masks = src_masks[src_idx]
         masks = [t["masks"] for t in targets]
-        # TODO use valid to mask invalid areas due to padding in loss
         target_masks, valid = nested_tensor_from_tensor_list(masks).decompose()
         target_masks = target_masks.to(src_masks)
         target_masks = target_masks[tgt_idx]
@@ -275,22 +338,11 @@ class PostProcess(nn.Module):
 
 
 def build(args):
-    # the `num_classes` naming here is somewhat misleading.
-    # it indeed corresponds to `max_obj_id + 1`, where max_obj_id
-    # is the maximum id for a class in your dataset. For example,
-    # COCO has a max_obj_id of 90, so we pass `num_classes` to be 91.
-    # As another example, for a dataset that has a single class with id 1,
-    # you should pass `num_classes` to be 2 (max_obj_id + 1).
-    # For more details on this, check the following discussion
-    # https://github.com/facebookresearch/detr/issues/108#issuecomment-650269223
-    num_classes = 20 if args.dataset_file != 'coco' else 91
-    if args.dataset_file == "coco_panoptic":
-        # for panoptic, we just add a num_classes that is large enough to hold
-        # max_obj_id + 1, but the exact value doesn't really matter
-        num_classes = 250
-    device = torch.device(args.device)
 
-    # import pdb;pdb.set_trace()
+    num_classes = args.num_classes
+    """Device Selection"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     model = Detector(
         num_classes=num_classes,
         pre_trained=args.pre_trained,
@@ -304,16 +356,12 @@ def build(args):
     matcher = build_matcher(args)
     weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
     weight_dict['loss_giou'] = args.giou_loss_coef
-    # TODO this is a hack
-    # if args.aux_loss:
-    #     aux_weight_dict = {}
-    #     for i in range(args.dec_layers - 1):
-    #         aux_weight_dict.update({k + f'_{i}': v for k, v in weight_dict.items()})
-    #     weight_dict.update(aux_weight_dict)
-
+    weighted_l1 = args.weighted_l1 
+    weighted_giou = args.weighted_giou
     losses = ['labels', 'boxes', 'cardinality']
     criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
-                             eos_coef=args.eos_coef, losses=losses)
+                             eos_coef=args.eos_coef, losses=losses, weighted_l1=weighted_l1 , weighted_giou=weighted_giou)
+
     criterion.to(device)
     postprocessors = {'bbox': PostProcess()}
 
