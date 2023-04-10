@@ -92,8 +92,10 @@ def get_args_parser():
                         help='start epoch')
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
-    parser.add_argument('--weighted_giou', default=2, type=int)
-    parser.add_argument('--weighted_l1', default=1, type=int)
+    parser.add_argument('--weighted_giou', default=1, type=float)
+    parser.add_argument('--weighted_l1', default=1, type=float)
+    parser.add_argument('--num_classes', default=1, type=int)
+    parser.add_argument('--img_size', default=224, type=int)
 
     # distributed training parameters
     parser.add_argument('--world_size', default=1, type=int,
@@ -106,12 +108,15 @@ def main(args):
     utils.init_distributed_mode(args)
     print(args)
 
-    device = torch.device(args.device)
+    """Device Selection"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     seed = args.seed + utils.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
     model, criterion, postprocessors = build_yolos_model(args)
+    
     model.to(device)
 
     model_without_ddp = model

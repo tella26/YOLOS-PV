@@ -151,7 +151,32 @@ class SetCriterion(nn.Module):
         return losses
     '''
 
+  
+    def loss_boxes(self, outputs, targets, indices, num_boxes):
+        """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
+           targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
+           The target boxes are expected in format (center_x, center_y, w, h), normalized by the image size.
+        """
+        assert 'pred_boxes' in outputs
+        idx = self._get_src_permutation_idx(indices)
+        src_boxes = outputs['pred_boxes'][idx]
+        target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
+
+        loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
+        
+        losses = {}
+        losses['loss_bbox']  = (self.weighted_l1 * loss_bbox).sum() / num_boxes
+
+        loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
+            box_ops.box_cxcywh_to_xyxy(src_boxes),
+            box_ops.box_cxcywh_to_xyxy(target_boxes)))
+        
+        losses['loss_giou'] = (self.weighted_giou *loss_giou).sum() / num_boxes
+        return losses
+    
+
     ''' Weighted bbox and giou loss'''
+    '''
     def loss_boxes(self, outputs, targets, indices, num_boxes):
         assert 'pred_boxes' in outputs
         idx = self._get_src_permutation_idx(indices)
@@ -175,17 +200,17 @@ class SetCriterion(nn.Module):
         #weighted_giou = 2.0 
         loss_giou_weighted = (self.weighted_giou * loss_giou)
 
-        '''
+       
         # Compute total weighted loss
-        total_loss = loss_l1_weighted + loss_giou_weighted
-        final_loss = total_loss / (weighted_l1+ weighted_giou)
-        losses = {'loss_bbox': loss_l1_weighted}
-        '''
+        #total_loss = loss_l1_weighted + loss_giou_weighted
+        #final_loss = total_loss / (weighted_l1+ weighted_giou)
+        #losses = {'loss_bbox': loss_l1_weighted}
+        
         losses['loss_giou'] = loss_l1_weighted 
         losses['loss_bbox'] = loss_giou_weighted 
       
         return losses
-
+      '''
 
     def loss_masks(self, outputs, targets, indices, num_boxes):
         """Compute the losses related to the masks: the focal loss and the dice loss.
@@ -313,22 +338,11 @@ class PostProcess(nn.Module):
 
 
 def build(args):
-    # the `num_classes` naming here is somewhat misleading.
-    # it indeed corresponds to `max_obj_id + 1`, where max_obj_id
-    # is the maximum id for a class in your dataset. For example,
-    # COCO has a max_obj_id of 90, so we pass `num_classes` to be 91.
-    # As another example, for a dataset that has a single class with id 1,
-    # you should pass `num_classes` to be 2 (max_obj_id + 1).
-    # For more details on this, check the following discussion
-    # https://github.com/facebookresearch/detr/issues/108#issuecomment-650269223
-    num_classes = 20 if args.dataset_file != 'coco' else 91
-    if args.dataset_file == "coco_panoptic":
-        # for panoptic, we just add a num_classes that is large enough to hold
-        # max_obj_id + 1, but the exact value doesn't really matter
-        num_classes = 250
-    device = torch.device(args.device)
 
-    # import pdb;pdb.set_trace()
+    num_classes = args.num_classes
+    """Device Selection"""
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     model = Detector(
         num_classes=num_classes,
         pre_trained=args.pre_trained,
@@ -347,6 +361,7 @@ def build(args):
     losses = ['labels', 'boxes', 'cardinality']
     criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
                              eos_coef=args.eos_coef, losses=losses, weighted_l1=weighted_l1 , weighted_giou=weighted_giou)
+
     criterion.to(device)
     postprocessors = {'bbox': PostProcess()}
 
