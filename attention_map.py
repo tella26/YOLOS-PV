@@ -153,7 +153,7 @@ def get_one_query_attn(vis_attn, h_featmap, w_featmap, nh):
 # classes
 CLASSES = [
     'background',
-    '1',
+    'defect',
     'defect',
 ]
 
@@ -177,9 +177,9 @@ def get_args_parser():
                         help="init pe size (h,w)")
     parser.add_argument('--mid_pe_size', nargs='+', type=int, default=[512,864],
                         help="mid pe size (h,w)")
-    parser.add_argument('--checkpoint', default='output/checkpoint/checkpoint.pth',
+    parser.add_argument('--checkpoint', default='output/checkpoint/yolos/epoch=98-step=5841.ckpt',
                          type =str,  help='resume from checkpoint') 
-    parser.add_argument('--threshold', default=0.1,
+    parser.add_argument('--threshold', default=0.2,
                          type=float,  help='Confidence threshold') 
 
     return parser
@@ -207,13 +207,13 @@ else:
     checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
 
 # adjust the shape of the pos_embed parameter  backbone.pos_embed
-checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
-checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
-checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
-checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
+#checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
+#checkpoint['model']['backbone.det_token'] = checkpoint['model']['backbone.det_token'][:, :model.backbone.det_token.shape[1], :]
+#checkpoint['model']['class_embed.layers.2.weight'] = checkpoint['model']['class_embed.layers.2.weight'][:model.class_embed.layers[2].weight.shape[0], :] 
+#checkpoint['model']['class_embed.layers.2.bias'] = checkpoint['model']['class_embed.layers.2.bias'][:model.class_embed.layers[2].bias.shape[0]]  
 
 # load the state dictionary into the model
-model.load_state_dict(checkpoint['model'], strict=False)
+model.load_state_dict(checkpoint, strict=False)
 
 root = Path(args.coco_path)
 #assert root.exists(), f'provided COCO path {root} does not exist'
@@ -329,6 +329,6 @@ for dettoken_dir in det_tok_dirs:
     fleft_ax.imshow(im)
     fleft_ax.axis('off')
     fleft_ax.set_title('pred_img.png')
-    fig.savefig(os.path.join(args.project, dettoken_dir.split('/')[-1]+'_'+'attn.png'), facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
+    fig.savefig(dettoken_dir.split('/')[-1]+'_'+'attn.png', facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
     plt.show(fig)
     plt.close(fig)
