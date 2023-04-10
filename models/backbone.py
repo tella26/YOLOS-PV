@@ -423,7 +423,7 @@ def small(pretrained=None, **kwargs):
         #     map_location="cpu", check_hash=True
         # )
         checkpoint = torch.load(pretrained, map_location="cpu")
-        model.load_state_dict(checkpoint["model"], strict=False)
+        model.load_state_dict(checkpoint, strict=False)
     return model, 384
 
 
