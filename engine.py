@@ -65,7 +65,7 @@ def train_one_epoch(model: torch.nn.Module, criterion: torch.nn.Module,
 
 
 @torch.no_grad()
-def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir):
+def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, output_dir, weighted_giou=1, weighted_l1=1):
     model.eval()
     criterion.eval()
 
@@ -83,7 +83,7 @@ def evaluate(model, criterion, postprocessors, data_loader, base_ds, device, out
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         outputs = model(samples)
-        loss_dict = criterion(outputs, targets)
+        loss_dict = criterion(outputs, targets, weighted_giou, weighted_l1)
         weight_dict = criterion.weight_dict
 
         # reduce losses over all GPUs for logging purposes
