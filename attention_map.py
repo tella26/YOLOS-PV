@@ -160,7 +160,7 @@ CLASSES = [
 def get_args_parser():
     parser = argparse.ArgumentParser('Visualize Self-Attention maps', add_help=False)
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
-    parser.add_argument('--project', default='./visualization', help='Path where to save visualizations.')
+    parser.add_argument('--project', default='', help='Path where to save visualizations.')
     parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--index', default=2, type=int, help='index of dataset')
     parser.add_argument('--backbone_name', default='small', type=str,
@@ -204,7 +204,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 if device == 'cuda':
     checkpoint = torch.load(args.checkpoint)
 else:
-    checkpoint = torch.load(args.checkpoint) # cpu
+    checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
 
 # adjust the shape of the pos_embed parameter  backbone.pos_embed
 #checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
@@ -329,6 +329,6 @@ for dettoken_dir in det_tok_dirs:
     fleft_ax.imshow(im)
     fleft_ax.axis('off')
     fleft_ax.set_title('pred_img.png')
-    fig.savefig(dettoken_dir.split('/')[-1]+'_'+'attn.png', facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
+    fig.savefig(os.path.join(args.project, dettoken_dir.split('/')[-1]+'_'+'attn.png'), facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
     plt.show(fig)
     plt.close(fig)
