@@ -199,7 +199,7 @@ def main(args):
 
     if args.eval:
         test_stats, coco_evaluator = evaluate(model, criterion, postprocessors,
-                                              data_loader_val, base_ds, device, args.output_dir, args.weighted_giou, args.weighted_l1)
+                                              data_loader_val, base_ds, device, args.output_dir, args.weighted_l1, args.weighted_giou)
         if args.output_dir:
             utils.save_on_master(coco_evaluator.coco_eval["bbox"].eval, output_dir / "eval.pth")
         return
@@ -211,7 +211,7 @@ def main(args):
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(
             model, criterion, data_loader_train, optimizer, device, epoch,
-            args.clip_max_norm, args.weighted_giou, args.weighted_l1)
+            args.clip_max_norm , args.weighted_l1 , args.weighted_giou)
         lr_scheduler.step(epoch)
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
@@ -228,7 +228,7 @@ def main(args):
                 }, checkpoint_path)
 
         test_stats, coco_evaluator = evaluate(
-            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir, args.weighted_giou, args.weighted_l1)
+            model, criterion, postprocessors, data_loader_val, base_ds, device, args.output_dir , args.weighted_l1, args.weighted_giou)
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'test_{k}': v for k, v in test_stats.items()},
