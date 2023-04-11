@@ -153,9 +153,8 @@ class SetCriterion(nn.Module):
 
         # Compute total weighted loss
         total_loss = losses['loss_bbox'] + losses['loss_giou']
-        final_loss = total_loss / (weighted_l1+ weighted_giou)
-        weighted_final_loss = {'weighted_final_loss': final_loss}
-        print("weighted_final_loss:", weighted_final_loss)
+        losses['final_weighted_loss'] = total_loss / (weighted_l1+ weighted_giou)
+
         return losses
     
 
