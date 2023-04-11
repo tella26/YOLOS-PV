@@ -204,7 +204,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 if device == 'cuda':
     checkpoint = torch.load(args.checkpoint)
 else:
-    checkpoint = torch.load(args.checkpoint, map_location=torch.device('cpu')) # cpu
+    checkpoint = torch.load(args.checkpoint) # cpu
 
 # adjust the shape of the pos_embed parameter  backbone.pos_embed
 #checkpoint['model']['backbone.pos_embed'] = checkpoint['model']['backbone.pos_embed'][:, :model.backbone.pos_embed.shape[1], :]
