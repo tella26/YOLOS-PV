@@ -57,7 +57,7 @@ class Detector(nn.Module):
         x = self.backbone(samples.tensors)
         # x = x[:, 1:,:]
         outputs_class = self.class_embed(x)
-        outputs_coord = self.bbox_embed(x).sigmoid()
+        outputs_coord = self.bbox_embed(x).softmax(dim=-1)
         out = {'pred_logits': outputs_class, 'pred_boxes': outputs_coord}
         return out
 
