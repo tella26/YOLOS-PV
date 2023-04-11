@@ -128,30 +128,8 @@ class SetCriterion(nn.Module):
         card_err = F.l1_loss(card_pred.float(), tgt_lengths.float())
         losses = {'cardinality_error': card_err}
         return losses
-    '''
-    def loss_boxes(self, outputs, targets, indices, num_boxes):
-        """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
-           targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
-           The target boxes are expected in format (center_x, center_y, w, h), normalized by the image size.
-        """
-        assert 'pred_boxes' in outputs
-        idx = self._get_src_permutation_idx(indices)
-        src_boxes = outputs['pred_boxes'][idx]
-        target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
 
-        loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
 
-        losses = {}
-        losses['loss_bbox'] = loss_bbox.sum() / num_boxes
-
-        loss_giou = 1 - torch.diag(box_ops.generalized_box_iou(
-            box_ops.box_cxcywh_to_xyxy(src_boxes),
-            box_ops.box_cxcywh_to_xyxy(target_boxes)))
-        losses['loss_giou'] = loss_giou.sum() / num_boxes
-        return losses
-    '''
-
-  
     def loss_boxes(self, outputs, targets, indices, num_boxes, weighted_l1, weighted_giou):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
            targets dicts must contain the key "boxes" containing a tensor of dim [nb_target_boxes, 4]
@@ -172,45 +150,14 @@ class SetCriterion(nn.Module):
             box_ops.box_cxcywh_to_xyxy(target_boxes)))
         
         losses['loss_giou'] = (weighted_giou *loss_giou).sum() / num_boxes
+
+        # Compute total weighted loss
+        total_loss = losses['loss_bbox'] + losses['loss_giou']
+        final_loss = total_loss / (weighted_l1+ weighted_giou)
+        weighted_final_loss = {'weighted_final_loss': final_loss}
+        print("weighted_final_loss:", weighted_final_loss)
         return losses
     
-
-    ''' Weighted bbox and giou loss'''
-    '''
-    def loss_boxes(self, outputs, targets, indices, num_boxes):
-        assert 'pred_boxes' in outputs
-        idx = self._get_src_permutation_idx(indices)
-        src_boxes = outputs['pred_boxes'][idx]
-        target_boxes = torch.cat([t['boxes'][i] for t, (_, i) in zip(targets, indices)], dim=0)
-        losses = {}
-
-        # Compute L1 loss
-        loss_l1 = F.l1_loss(src_boxes, target_boxes, reduction='none')
-        #weighted_l1 = 1.0 
-        loss_l1_weighted = (self.weighted_l1 * loss_l1).sum() / num_boxes
-
-        # Compute GIOU loss
-        src_boxes = box_convert(src_boxes, 'cxcywh', 'xyxy')
-        target_boxes = box_convert(target_boxes, 'cxcywh', 'xyxy')
-        ious = box_iou(src_boxes, target_boxes)
-        areas_p = box_area(src_boxes)
-        areas_g = box_area(target_boxes)
-        giou = ious - (areas_p + areas_g - ious) / areas_g
-        loss_giou = 1.0 - giou.diag().clamp(min=0).mean()
-        #weighted_giou = 2.0 
-        loss_giou_weighted = (self.weighted_giou * loss_giou)
-
-       
-        # Compute total weighted loss
-        #total_loss = loss_l1_weighted + loss_giou_weighted
-        #final_loss = total_loss / (weighted_l1+ weighted_giou)
-        #losses = {'loss_bbox': loss_l1_weighted}
-        
-        losses['loss_giou'] = loss_l1_weighted 
-        losses['loss_bbox'] = loss_giou_weighted 
-      
-        return losses
-      '''
 
     def loss_masks(self, outputs, targets, indices, num_boxes, weighted_l1, weighted_giou):
         """Compute the losses related to the masks: the focal loss and the dice loss.
