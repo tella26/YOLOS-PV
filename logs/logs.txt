@@ -1,0 +1,5 @@
+logs\l1_1_giou_0
+logs\l1_0.75_giou_0.25
+logs\l1_0.5_giou_0.5
+logs\l1_0.25_giou_0.75
+logs\l1_0_giou_1

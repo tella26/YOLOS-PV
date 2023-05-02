@@ -6,11 +6,17 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-
+import os
 from pathlib import Path, PurePath
+from matplotlib.ticker import StrMethodFormatter
 
 
-def plot_logs(logs, fields=('class_error', 'loss_bbox_unscaled', 'mAP'), ewm_col=0, log_name='log.txt'):
+# define conversion function
+def convert_to_numeric(col):
+    return pd.to_numeric(col, errors='coerce')
+
+
+def plot_logs(save_path = '../visualization', logs_file = "logs\logs.txt", fields=('loss_bbox_unscaled', 'loss_giou_unscaled', 'final_weighted_loss_unscaled', 'loss'), ewm_col=24, log_name='log.txt'):
     '''
     Function to plot specific fields from training log(s). Plots both training and test results.
 
@@ -27,6 +33,9 @@ def plot_logs(logs, fields=('class_error', 'loss_bbox_unscaled', 'mAP'), ewm_col
 
     # verify logs is a list of Paths (list[Paths]) or single Pathlib object Path,
     # convert single Path to list to avoid 'not iterable' error
+    with open(logs_file) as f:
+        directories = f.readlines()
+    logs = [directory.strip() for directory in directories]  # Remove newline characters
 
     if not isinstance(logs, list):
         if isinstance(logs, PurePath):
@@ -35,13 +44,14 @@ def plot_logs(logs, fields=('class_error', 'loss_bbox_unscaled', 'mAP'), ewm_col
         else:
             raise ValueError(f"{func_name} - invalid argument for logs parameter.\n \
             Expect list[Path] or single Path obj, received {type(logs)}")
-
+        
     # Quality checks - verify valid dir(s), that every item in list is Path object, and that log_name exists in each dir
     for i, dir in enumerate(logs):
+        if not Path(dir).is_dir():
+            raise ValueError(f"{func_name} - invalid directory in logs argument:\n{dir}")
+        dir = PurePath(dir)
         if not isinstance(dir, PurePath):
             raise ValueError(f"{func_name} - non-Path object in logs argument of {type(dir)}: \n{dir}")
-        if not dir.exists():
-            raise ValueError(f"{func_name} - invalid directory in logs argument:\n{dir}")
         # verify log_name exists
         fn = Path(dir / log_name)
         if not fn.exists():
@@ -52,7 +62,7 @@ def plot_logs(logs, fields=('class_error', 'loss_bbox_unscaled', 'mAP'), ewm_col
     # load log file(s) and plot
     dfs = [pd.read_json(Path(p) / log_name, lines=True) for p in logs]
 
-    fig, axs = plt.subplots(ncols=len(fields), figsize=(16, 5))
+    fig, axs = plt.subplots(ncols=len(fields), figsize=(40, 9))
 
     for df, color in zip(dfs, sns.color_palette(n_colors=len(logs))):
         for j, field in enumerate(fields):
@@ -62,15 +72,31 @@ def plot_logs(logs, fields=('class_error', 'loss_bbox_unscaled', 'mAP'), ewm_col
                 ).ewm(com=ewm_col).mean()
                 axs[j].plot(coco_eval, c=color)
             else:
+                # apply conversion function to subset of columns
+                df = df.apply(convert_to_numeric)
                 df.interpolate().ewm(com=ewm_col).mean().plot(
-                    y=[f'train_{field}', f'test_{field}'],
-                    ax=axs[j],
-                    color=[color] * 2,
-                    style=['-', '--']
+                    y=[f'test_{field}'],
+                    ax=axs.flatten()[j],
+                    color=[color] * 5,
+                    style=['-']
                 )
-    for ax, field in zip(axs, fields):
-        ax.legend([Path(p).name for p in logs])
-        ax.set_title(field)
+    FontSize = 26
+    for ax, field in zip( axs, fields ):
+        ax.legend([Path(p).name for p in logs], fontsize=12)
+        titles = field.replace('_unscaled', '')
+        titless = titles.replace('_', ' ')
+        ax.set_title(titless, fontsize=FontSize )
+        ax.set_xlabel('Epoch', fontsize=FontSize)
+        ax.grid(True)
+        ax.set_xlim(0, 9)
+        ax.set_xticks(np.arange(0, 9, 1))
+        ax.set_xticklabels(np.arange(0, 9, 1), fontsize=FontSize)
+        ax.yaxis.set_ticklabels(labels=ax.get_yticks(), fontsize=FontSize )
+        ax.yaxis.set_major_formatter(StrMethodFormatter('{x:.2f}'))
+    
+    fig.savefig(save_path.split('/')[-1]+'_'+'weighted_loss.png', facecolor=fig.get_facecolor(), edgecolor='none', dpi=300)
+    plt.show()
+    plt.close()
 
 
 def plot_precision_recall(files, naming_scheme='iter'):
@@ -105,3 +131,7 @@ def plot_precision_recall(files, naming_scheme='iter'):
     axs[1].set_title('Scores / Recall')
     axs[1].legend(names)
     return fig, axs
+
+
+
+plot_logs(save_path = '../visualization', logs_file = "logs\logs.txt", fields=('loss_bbox_unscaled', 'loss_giou_unscaled', 'final_weighted_loss_unscaled', 'loss'), ewm_col=24, log_name='log.txt')
