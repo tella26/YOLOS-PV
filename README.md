@@ -123,8 +123,8 @@ To evaluate `YOLOS-S` model on COCO, run:
 <!--##########################################################################################-->
 
 ### Paper Results
-The plots for the adjusted weighted values of $$ \begin{equation} W_{\text{giou}} = 0.75 \end{equation}$$ and $$ \begin{equation} W_{\text{L1}} = 0.25 \end{equation} $$
-and $$\begin{equation} W_{\text{giou}} = 0,1 \end{equation}$$ and $$\begin{equation} W_{\text{L1}} = 0,1 \end{equation}$$
+The plots for the adjusted weighted values of W_giou = 0.75 and W_L1 = 0.25 $$
+and W_giou = 0,1 and W_L1 = 0,1 
 
  🔥 Loss Function plots 🔥
 
