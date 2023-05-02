@@ -7,8 +7,6 @@
 
 ![Object Detection Model on Solar Thermal Images (YOLOS_PV)](visualization/YOLOS-PV.png) 
 
-SOlar panel cells defect Classification uses computer vision models to classify defects in dataset that has already gone through imaging techniques like electroluminiscence or thermal imaging. Each models are applied on the benchmark dataset like elpv-4 with four classes, elpv-2 (Coined from elpv-4 but having 2 classes of functional and defective) and elpv-12 with 12 classes.
-
 ### 🗒 Datasets
 You can download the benchmark thermal Images dataset below that is prepared
  in COCO data format: [COCO](http://cocodataset.org/)
@@ -123,7 +121,7 @@ To evaluate `YOLOS-S` model on COCO, run:
 <!--##########################################################################################-->
 
 ### Paper Results
-The plots for the adjusted weighted values of W_giou = 0.75 and W_L1 = 0.25 $$
+The plots for the adjusted weighted values of W_giou = 0.75 and W_L1 = 0.25 
 and W_giou = 0,1 and W_L1 = 0,1 
 
  🔥 Loss Function plots 🔥
